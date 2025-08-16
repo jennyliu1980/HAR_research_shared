@@ -1,0 +1,203 @@
+============================================================
+Self-supervised Pretraining for HAR
+============================================================
+Dataset: ucihar
+Masking: spantime
+  Time mask: 20%
+============================================================
+
+Loading ucihar dataset...
+Data shape: (6172, 128, 9)
+  Samples: 6172
+  Timesteps: 128
+  Features: 9
+  Classes: 6
+
+Initializing model...
+  Total parameters: 466,569
+
+Starting pretraining...
+  Epochs: 150
+  Batch size: 256
+  Learning rate: 0.001
+============================================================
+Training on cpu
+Total batches per epoch: 25
+Epoch [1/150] - Loss: 0.7483 - Time Loss: 0.7483 - Channel Loss: 0.0000 - Time: 15.9s
+Epoch [2/150] - Loss: 0.7143 - Time Loss: 0.7143 - Channel Loss: 0.0000 - Time: 16.6s
+Epoch [3/150] - Loss: 0.6933 - Time Loss: 0.6933 - Channel Loss: 0.0000 - Time: 16.6s
+Epoch [4/150] - Loss: 0.6876 - Time Loss: 0.6876 - Channel Loss: 0.0000 - Time: 16.6s
+Epoch [5/150] - Loss: 0.6885 - Time Loss: 0.6885 - Channel Loss: 0.0000 - Time: 16.7s
+Epoch [6/150] - Loss: 0.6842 - Time Loss: 0.6842 - Channel Loss: 0.0000 - Time: 16.6s
+Epoch [7/150] - Loss: 0.6851 - Time Loss: 0.6851 - Channel Loss: 0.0000 - Time: 17.1s
+Epoch [8/150] - Loss: 0.7004 - Time Loss: 0.7004 - Channel Loss: 0.0000 - Time: 16.8s
+Epoch [9/150] - Loss: 0.6916 - Time Loss: 0.6916 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [10/150] - Loss: 0.6878 - Time Loss: 0.6878 - Channel Loss: 0.0000 - Time: 17.1s
+Epoch [11/150] - Loss: 0.6853 - Time Loss: 0.6853 - Channel Loss: 0.0000 - Time: 17.4s
+Epoch [12/150] - Loss: 0.6933 - Time Loss: 0.6933 - Channel Loss: 0.0000 - Time: 17.2s
+Epoch [13/150] - Loss: 0.6884 - Time Loss: 0.6884 - Channel Loss: 0.0000 - Time: 17.2s
+Epoch [14/150] - Loss: 0.6876 - Time Loss: 0.6876 - Channel Loss: 0.0000 - Time: 16.7s
+Epoch [15/150] - Loss: 0.6778 - Time Loss: 0.6778 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [16/150] - Loss: 0.6760 - Time Loss: 0.6760 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [17/150] - Loss: 0.6909 - Time Loss: 0.6909 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [18/150] - Loss: 0.6839 - Time Loss: 0.6839 - Channel Loss: 0.0000 - Time: 17.9s
+Epoch [19/150] - Loss: 0.6827 - Time Loss: 0.6827 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [20/150] - Loss: 0.6837 - Time Loss: 0.6837 - Channel Loss: 0.0000 - Time: 17.6s
+Epoch [21/150] - Loss: 0.6836 - Time Loss: 0.6836 - Channel Loss: 0.0000 - Time: 17.8s
+Epoch [22/150] - Loss: 0.6808 - Time Loss: 0.6808 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [23/150] - Loss: 0.6719 - Time Loss: 0.6719 - Channel Loss: 0.0000 - Time: 17.2s
+Epoch [24/150] - Loss: 0.6868 - Time Loss: 0.6868 - Channel Loss: 0.0000 - Time: 17.9s
+Epoch [25/150] - Loss: 0.6822 - Time Loss: 0.6822 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [26/150] - Loss: 0.6752 - Time Loss: 0.6752 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [27/150] - Loss: 0.6672 - Time Loss: 0.6672 - Channel Loss: 0.0000 - Time: 17.6s
+Epoch [28/150] - Loss: 0.6788 - Time Loss: 0.6788 - Channel Loss: 0.0000 - Time: 17.7s
+Epoch [29/150] - Loss: 0.6690 - Time Loss: 0.6690 - Channel Loss: 0.0000 - Time: 17.3s
+Epoch [30/150] - Loss: 0.6704 - Time Loss: 0.6704 - Channel Loss: 0.0000 - Time: 17.8s
+Epoch [31/150] - Loss: 0.6689 - Time Loss: 0.6689 - Channel Loss: 0.0000 - Time: 18.2s
+Epoch [32/150] - Loss: 0.6674 - Time Loss: 0.6674 - Channel Loss: 0.0000 - Time: 18.5s
+Epoch [33/150] - Loss: 0.6548 - Time Loss: 0.6548 - Channel Loss: 0.0000 - Time: 18.5s
+Epoch [34/150] - Loss: 0.6637 - Time Loss: 0.6637 - Channel Loss: 0.0000 - Time: 18.6s
+Epoch [35/150] - Loss: 0.6687 - Time Loss: 0.6687 - Channel Loss: 0.0000 - Time: 18.5s
+Epoch [36/150] - Loss: 0.6616 - Time Loss: 0.6616 - Channel Loss: 0.0000 - Time: 18.2s
+Epoch [37/150] - Loss: 0.6594 - Time Loss: 0.6594 - Channel Loss: 0.0000 - Time: 18.5s
+Epoch [38/150] - Loss: 0.6681 - Time Loss: 0.6681 - Channel Loss: 0.0000 - Time: 18.3s
+Epoch [39/150] - Loss: 0.6597 - Time Loss: 0.6597 - Channel Loss: 0.0000 - Time: 18.6s
+Epoch [40/150] - Loss: 0.6577 - Time Loss: 0.6577 - Channel Loss: 0.0000 - Time: 18.8s
+Epoch [41/150] - Loss: 0.6605 - Time Loss: 0.6605 - Channel Loss: 0.0000 - Time: 19.0s
+Epoch [42/150] - Loss: 0.6530 - Time Loss: 0.6530 - Channel Loss: 0.0000 - Time: 19.0s
+Epoch [43/150] - Loss: 0.6467 - Time Loss: 0.6467 - Channel Loss: 0.0000 - Time: 18.9s
+Epoch [44/150] - Loss: 0.6526 - Time Loss: 0.6526 - Channel Loss: 0.0000 - Time: 18.8s
+Epoch [45/150] - Loss: 0.6581 - Time Loss: 0.6581 - Channel Loss: 0.0000 - Time: 18.3s
+Epoch [46/150] - Loss: 0.6621 - Time Loss: 0.6621 - Channel Loss: 0.0000 - Time: 18.6s
+Epoch [47/150] - Loss: 0.6446 - Time Loss: 0.6446 - Channel Loss: 0.0000 - Time: 18.9s
+Epoch [48/150] - Loss: 0.6394 - Time Loss: 0.6394 - Channel Loss: 0.0000 - Time: 18.6s
+Epoch [49/150] - Loss: 0.6296 - Time Loss: 0.6296 - Channel Loss: 0.0000 - Time: 18.6s
+Epoch [50/150] - Loss: 0.6252 - Time Loss: 0.6252 - Channel Loss: 0.0000 - Time: 18.1s
+Epoch [51/150] - Loss: 0.6263 - Time Loss: 0.6263 - Channel Loss: 0.0000 - Time: 18.6s
+Epoch [52/150] - Loss: 0.5906 - Time Loss: 0.5906 - Channel Loss: 0.0000 - Time: 18.4s
+Epoch [53/150] - Loss: 0.5667 - Time Loss: 0.5667 - Channel Loss: 0.0000 - Time: 18.0s
+Epoch [54/150] - Loss: 0.5482 - Time Loss: 0.5482 - Channel Loss: 0.0000 - Time: 17.4s
+Epoch [55/150] - Loss: 0.5464 - Time Loss: 0.5464 - Channel Loss: 0.0000 - Time: 18.0s
+Epoch [56/150] - Loss: 0.5138 - Time Loss: 0.5138 - Channel Loss: 0.0000 - Time: 17.8s
+Epoch [57/150] - Loss: 0.4887 - Time Loss: 0.4887 - Channel Loss: 0.0000 - Time: 18.4s
+Epoch [58/150] - Loss: 0.4569 - Time Loss: 0.4569 - Channel Loss: 0.0000 - Time: 18.0s
+Epoch [59/150] - Loss: 0.4404 - Time Loss: 0.4404 - Channel Loss: 0.0000 - Time: 17.7s
+Epoch [60/150] - Loss: 0.4278 - Time Loss: 0.4278 - Channel Loss: 0.0000 - Time: 17.7s
+Epoch [61/150] - Loss: 0.4101 - Time Loss: 0.4101 - Channel Loss: 0.0000 - Time: 17.8s
+Epoch [62/150] - Loss: 0.3988 - Time Loss: 0.3988 - Channel Loss: 0.0000 - Time: 18.0s
+Epoch [63/150] - Loss: 0.4101 - Time Loss: 0.4101 - Channel Loss: 0.0000 - Time: 18.2s
+Epoch [64/150] - Loss: 0.3775 - Time Loss: 0.3775 - Channel Loss: 0.0000 - Time: 18.4s
+Epoch [65/150] - Loss: 0.3698 - Time Loss: 0.3698 - Channel Loss: 0.0000 - Time: 18.0s
+Epoch [66/150] - Loss: 0.3615 - Time Loss: 0.3615 - Channel Loss: 0.0000 - Time: 17.9s
+Epoch [67/150] - Loss: 0.3441 - Time Loss: 0.3441 - Channel Loss: 0.0000 - Time: 17.9s
+Epoch [68/150] - Loss: 0.3421 - Time Loss: 0.3421 - Channel Loss: 0.0000 - Time: 17.7s
+Epoch [69/150] - Loss: 0.3390 - Time Loss: 0.3390 - Channel Loss: 0.0000 - Time: 17.7s
+Epoch [70/150] - Loss: 0.3271 - Time Loss: 0.3271 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [71/150] - Loss: 0.3159 - Time Loss: 0.3159 - Channel Loss: 0.0000 - Time: 17.6s
+Epoch [72/150] - Loss: 0.3105 - Time Loss: 0.3105 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [73/150] - Loss: 0.3028 - Time Loss: 0.3028 - Channel Loss: 0.0000 - Time: 17.6s
+Epoch [74/150] - Loss: 0.2979 - Time Loss: 0.2979 - Channel Loss: 0.0000 - Time: 17.5s
+Epoch [75/150] - Loss: 0.2973 - Time Loss: 0.2973 - Channel Loss: 0.0000 - Time: 17.4s
+Epoch [76/150] - Loss: 0.2832 - Time Loss: 0.2832 - Channel Loss: 0.0000 - Time: 17.4s
+Epoch [77/150] - Loss: 0.2766 - Time Loss: 0.2766 - Channel Loss: 0.0000 - Time: 17.3s
+Epoch [78/150] - Loss: 0.2841 - Time Loss: 0.2841 - Channel Loss: 0.0000 - Time: 16.9s
+Epoch [79/150] - Loss: 0.2782 - Time Loss: 0.2782 - Channel Loss: 0.0000 - Time: 17.0s
+Epoch [80/150] - Loss: 0.2692 - Time Loss: 0.2692 - Channel Loss: 0.0000 - Time: 17.0s
+Epoch [81/150] - Loss: 0.2668 - Time Loss: 0.2668 - Channel Loss: 0.0000 - Time: 16.9s
+Epoch [82/150] - Loss: 0.2615 - Time Loss: 0.2615 - Channel Loss: 0.0000 - Time: 16.8s
+Epoch [83/150] - Loss: 0.2614 - Time Loss: 0.2614 - Channel Loss: 0.0000 - Time: 17.0s
+Epoch [84/150] - Loss: 0.2536 - Time Loss: 0.2536 - Channel Loss: 0.0000 - Time: 16.6s
+Epoch [85/150] - Loss: 0.2505 - Time Loss: 0.2505 - Channel Loss: 0.0000 - Time: 16.7s
+Epoch [86/150] - Loss: 0.2495 - Time Loss: 0.2495 - Channel Loss: 0.0000 - Time: 16.5s
+Epoch [87/150] - Loss: 0.2414 - Time Loss: 0.2414 - Channel Loss: 0.0000 - Time: 16.8s
+Epoch [88/150] - Loss: 0.2359 - Time Loss: 0.2359 - Channel Loss: 0.0000 - Time: 16.8s
+Epoch [89/150] - Loss: 0.2305 - Time Loss: 0.2305 - Channel Loss: 0.0000 - Time: 16.5s
+Epoch [90/150] - Loss: 0.2309 - Time Loss: 0.2309 - Channel Loss: 0.0000 - Time: 16.5s
+Epoch [91/150] - Loss: 0.2183 - Time Loss: 0.2183 - Channel Loss: 0.0000 - Time: 16.2s
+Epoch [92/150] - Loss: 0.2243 - Time Loss: 0.2243 - Channel Loss: 0.0000 - Time: 16.2s
+Epoch [93/150] - Loss: 0.2190 - Time Loss: 0.2190 - Channel Loss: 0.0000 - Time: 16.0s
+Epoch [94/150] - Loss: 0.2158 - Time Loss: 0.2158 - Channel Loss: 0.0000 - Time: 16.0s
+Epoch [95/150] - Loss: 0.2174 - Time Loss: 0.2174 - Channel Loss: 0.0000 - Time: 15.7s
+Epoch [96/150] - Loss: 0.2125 - Time Loss: 0.2125 - Channel Loss: 0.0000 - Time: 15.6s
+Epoch [97/150] - Loss: 0.2081 - Time Loss: 0.2081 - Channel Loss: 0.0000 - Time: 15.6s
+Epoch [98/150] - Loss: 0.2117 - Time Loss: 0.2117 - Channel Loss: 0.0000 - Time: 15.7s
+Epoch [99/150] - Loss: 0.2075 - Time Loss: 0.2075 - Channel Loss: 0.0000 - Time: 15.5s
+Epoch [100/150] - Loss: 0.2011 - Time Loss: 0.2011 - Channel Loss: 0.0000 - Time: 15.4s
+Epoch [101/150] - Loss: 0.1989 - Time Loss: 0.1989 - Channel Loss: 0.0000 - Time: 15.4s
+Epoch [102/150] - Loss: 0.2008 - Time Loss: 0.2008 - Channel Loss: 0.0000 - Time: 15.4s
+  -> New best model saved at epoch 102 (loss: 0.2008)
+Epoch [103/150] - Loss: 0.1989 - Time Loss: 0.1989 - Channel Loss: 0.0000 - Time: 15.3s
+  -> New best model saved at epoch 103 (loss: 0.1989)
+Epoch [104/150] - Loss: 0.1945 - Time Loss: 0.1945 - Channel Loss: 0.0000 - Time: 15.4s
+  -> New best model saved at epoch 104 (loss: 0.1945)
+Epoch [105/150] - Loss: 0.1937 - Time Loss: 0.1937 - Channel Loss: 0.0000 - Time: 15.1s
+  -> New best model saved at epoch 105 (loss: 0.1937)
+Epoch [106/150] - Loss: 0.1888 - Time Loss: 0.1888 - Channel Loss: 0.0000 - Time: 15.0s
+  -> New best model saved at epoch 106 (loss: 0.1888)
+Epoch [107/150] - Loss: 0.1973 - Time Loss: 0.1973 - Channel Loss: 0.0000 - Time: 15.0s
+Epoch [108/150] - Loss: 0.1879 - Time Loss: 0.1879 - Channel Loss: 0.0000 - Time: 14.9s
+  -> New best model saved at epoch 108 (loss: 0.1879)
+Epoch [109/150] - Loss: 0.1892 - Time Loss: 0.1892 - Channel Loss: 0.0000 - Time: 15.1s
+Epoch [110/150] - Loss: 0.1899 - Time Loss: 0.1899 - Channel Loss: 0.0000 - Time: 15.1s
+Epoch [111/150] - Loss: 0.1825 - Time Loss: 0.1825 - Channel Loss: 0.0000 - Time: 15.3s
+  -> New best model saved at epoch 111 (loss: 0.1825)
+Epoch [112/150] - Loss: 0.1798 - Time Loss: 0.1798 - Channel Loss: 0.0000 - Time: 15.2s
+  -> New best model saved at epoch 112 (loss: 0.1798)
+Epoch [113/150] - Loss: 0.1765 - Time Loss: 0.1765 - Channel Loss: 0.0000 - Time: 15.3s
+  -> New best model saved at epoch 113 (loss: 0.1765)
+Epoch [114/150] - Loss: 0.1734 - Time Loss: 0.1734 - Channel Loss: 0.0000 - Time: 15.1s
+  -> New best model saved at epoch 114 (loss: 0.1734)
+Epoch [115/150] - Loss: 0.1703 - Time Loss: 0.1703 - Channel Loss: 0.0000 - Time: 15.2s
+  -> New best model saved at epoch 115 (loss: 0.1703)
+Epoch [116/150] - Loss: 0.1740 - Time Loss: 0.1740 - Channel Loss: 0.0000 - Time: 15.2s
+Epoch [117/150] - Loss: 0.1664 - Time Loss: 0.1664 - Channel Loss: 0.0000 - Time: 15.0s
+  -> New best model saved at epoch 117 (loss: 0.1664)
+Epoch [118/150] - Loss: 0.1699 - Time Loss: 0.1699 - Channel Loss: 0.0000 - Time: 14.8s
+Epoch [119/150] - Loss: 0.1698 - Time Loss: 0.1698 - Channel Loss: 0.0000 - Time: 15.1s
+Epoch [120/150] - Loss: 0.1767 - Time Loss: 0.1767 - Channel Loss: 0.0000 - Time: 15.1s
+Epoch [121/150] - Loss: 0.1742 - Time Loss: 0.1742 - Channel Loss: 0.0000 - Time: 14.9s
+Epoch [122/150] - Loss: 0.1651 - Time Loss: 0.1651 - Channel Loss: 0.0000 - Time: 14.9s
+  -> New best model saved at epoch 122 (loss: 0.1651)
+Epoch [123/150] - Loss: 0.1722 - Time Loss: 0.1722 - Channel Loss: 0.0000 - Time: 14.9s
+Epoch [124/150] - Loss: 0.1655 - Time Loss: 0.1655 - Channel Loss: 0.0000 - Time: 15.1s
+Epoch [125/150] - Loss: 0.1699 - Time Loss: 0.1699 - Channel Loss: 0.0000 - Time: 15.6s
+Epoch [126/150] - Loss: 0.1648 - Time Loss: 0.1648 - Channel Loss: 0.0000 - Time: 15.6s
+  -> New best model saved at epoch 126 (loss: 0.1648)
+Epoch [127/150] - Loss: 0.1619 - Time Loss: 0.1619 - Channel Loss: 0.0000 - Time: 15.5s
+  -> New best model saved at epoch 127 (loss: 0.1619)
+Epoch [128/150] - Loss: 0.1703 - Time Loss: 0.1703 - Channel Loss: 0.0000 - Time: 15.3s
+Epoch [129/150] - Loss: 0.1619 - Time Loss: 0.1619 - Channel Loss: 0.0000 - Time: 15.4s
+Epoch [130/150] - Loss: 0.1693 - Time Loss: 0.1693 - Channel Loss: 0.0000 - Time: 15.3s
+Epoch [131/150] - Loss: 0.1616 - Time Loss: 0.1616 - Channel Loss: 0.0000 - Time: 15.1s
+  -> New best model saved at epoch 131 (loss: 0.1616)
+Epoch [132/150] - Loss: 0.1627 - Time Loss: 0.1627 - Channel Loss: 0.0000 - Time: 15.2s
+Epoch [133/150] - Loss: 0.1644 - Time Loss: 0.1644 - Channel Loss: 0.0000 - Time: 15.1s
+Epoch [134/150] - Loss: 0.1541 - Time Loss: 0.1541 - Channel Loss: 0.0000 - Time: 15.0s
+  -> New best model saved at epoch 134 (loss: 0.1541)
+Epoch [135/150] - Loss: 0.1554 - Time Loss: 0.1554 - Channel Loss: 0.0000 - Time: 15.3s
+Epoch [136/150] - Loss: 0.1540 - Time Loss: 0.1540 - Channel Loss: 0.0000 - Time: 15.1s
+  -> New best model saved at epoch 136 (loss: 0.1540)
+Epoch [137/150] - Loss: 0.1598 - Time Loss: 0.1598 - Channel Loss: 0.0000 - Time: 15.0s
+Epoch [138/150] - Loss: 0.1581 - Time Loss: 0.1581 - Channel Loss: 0.0000 - Time: 15.2s
+Epoch [139/150] - Loss: 0.1597 - Time Loss: 0.1597 - Channel Loss: 0.0000 - Time: 14.9s
+Epoch [140/150] - Loss: 0.1552 - Time Loss: 0.1552 - Channel Loss: 0.0000 - Time: 15.0s
+Epoch [141/150] - Loss: 0.1526 - Time Loss: 0.1526 - Channel Loss: 0.0000 - Time: 15.1s
+  -> New best model saved at epoch 141 (loss: 0.1526)
+Epoch [142/150] - Loss: 0.1563 - Time Loss: 0.1563 - Channel Loss: 0.0000 - Time: 15.0s
+Epoch [143/150] - Loss: 0.1515 - Time Loss: 0.1515 - Channel Loss: 0.0000 - Time: 14.9s
+  -> New best model saved at epoch 143 (loss: 0.1515)
+Epoch [144/150] - Loss: 0.1481 - Time Loss: 0.1481 - Channel Loss: 0.0000 - Time: 15.0s
+  -> New best model saved at epoch 144 (loss: 0.1481)
+Epoch [145/150] - Loss: 0.1484 - Time Loss: 0.1484 - Channel Loss: 0.0000 - Time: 15.1s
+Epoch [146/150] - Loss: 0.1436 - Time Loss: 0.1436 - Channel Loss: 0.0000 - Time: 15.0s
+  -> New best model saved at epoch 146 (loss: 0.1436)
+Epoch [147/150] - Loss: 0.1537 - Time Loss: 0.1537 - Channel Loss: 0.0000 - Time: 14.8s
+Epoch [148/150] - Loss: 0.1477 - Time Loss: 0.1477 - Channel Loss: 0.0000 - Time: 14.7s
+Epoch [149/150] - Loss: 0.1417 - Time Loss: 0.1417 - Channel Loss: 0.0000 - Time: 14.7s
+  -> New best model saved at epoch 149 (loss: 0.1417)
+Epoch [150/150] - Loss: 0.1459 - Time Loss: 0.1459 - Channel Loss: 0.0000 - Time: 14.6s
+
+============================================================
+Pretraining completed!
+Best loss: 0.1417 at epoch 149
+============================================================

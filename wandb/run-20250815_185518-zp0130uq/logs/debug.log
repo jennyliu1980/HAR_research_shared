@@ -1,0 +1,28 @@
+2025-08-15 18:55:18,758 INFO    MainThread:61392 [wandb_setup.py:_flush():80] Current SDK version is 0.21.0
+2025-08-15 18:55:18,758 INFO    MainThread:61392 [wandb_setup.py:_flush():80] Configure stats pid to 61392
+2025-08-15 18:55:18,758 INFO    MainThread:61392 [wandb_setup.py:_flush():80] Loading settings from C:\Users\jenny\.config\wandb\settings
+2025-08-15 18:55:18,758 INFO    MainThread:61392 [wandb_setup.py:_flush():80] Loading settings from C:\Users\jenny\OneDrive\Desktop\PythonProject_HAR\wandb\settings
+2025-08-15 18:55:18,759 INFO    MainThread:61392 [wandb_setup.py:_flush():80] Loading settings from environment variables
+2025-08-15 18:55:18,759 INFO    MainThread:61392 [wandb_init.py:setup_run_log_directory():703] Logging user logs to C:\Users\jenny\OneDrive\Desktop\PythonProject_HAR\wandb\run-20250815_185518-zp0130uq\logs\debug.log
+2025-08-15 18:55:18,761 INFO    MainThread:61392 [wandb_init.py:setup_run_log_directory():704] Logging internal logs to C:\Users\jenny\OneDrive\Desktop\PythonProject_HAR\wandb\run-20250815_185518-zp0130uq\logs\debug-internal.log
+2025-08-15 18:55:18,761 INFO    MainThread:61392 [wandb_init.py:init():830] calling init triggers
+2025-08-15 18:55:18,761 INFO    MainThread:61392 [wandb_init.py:init():835] wandb.init called with sweep_config: {}
+config: {'dir': 'datasets/sub', 'dataset': 'ucihar', 'seed': 100, 'model_dir': 'model', 'type': 'time', 'channel_mask': 0, 'time_mask': 40, 'alpha': 0.0, 'pretrain_epoch': 150, 'batch_size': 64, 'ft_epoch': 100, 'lr': 0.0001, 'freeze_encoder': False, 'wandb_project': 'har-masking-finetune', 'wandb_entity': None, 'wandb_name': 'ft_ucihar_time_tm40_cm0_a0.0_s100', 'no_wandb': False, '_wandb': {}}
+2025-08-15 18:55:18,761 INFO    MainThread:61392 [wandb_init.py:init():871] starting backend
+2025-08-15 18:55:18,982 INFO    MainThread:61392 [wandb_init.py:init():874] sending inform_init request
+2025-08-15 18:55:18,998 INFO    MainThread:61392 [wandb_init.py:init():882] backend started and connected
+2025-08-15 18:55:18,999 INFO    MainThread:61392 [wandb_init.py:init():953] updated telemetry
+2025-08-15 18:55:19,000 INFO    MainThread:61392 [wandb_init.py:init():977] communicating run to backend with 90.0 second timeout
+2025-08-15 18:55:19,487 INFO    MainThread:61392 [wandb_init.py:init():1029] starting run threads in backend
+2025-08-15 18:55:19,624 INFO    MainThread:61392 [wandb_run.py:_console_start():2458] atexit reg
+2025-08-15 18:55:19,624 INFO    MainThread:61392 [wandb_run.py:_redirect():2306] redirect: wrap_raw
+2025-08-15 18:55:19,624 INFO    MainThread:61392 [wandb_run.py:_redirect():2375] Wrapping output streams.
+2025-08-15 18:55:19,624 INFO    MainThread:61392 [wandb_run.py:_redirect():2398] Redirects installed.
+2025-08-15 18:55:19,626 INFO    MainThread:61392 [wandb_init.py:init():1075] run started, returning control to user process
+2025-08-15 18:55:19,826 INFO    MainThread:61392 [wandb_run.py:_finish():2224] finishing run jennyliu080306-branksome-hall/har-masking-finetune/zp0130uq
+2025-08-15 18:55:19,826 INFO    MainThread:61392 [wandb_run.py:_atexit_cleanup():2423] got exitcode: 0
+2025-08-15 18:55:19,827 INFO    MainThread:61392 [wandb_run.py:_restore():2405] restore
+2025-08-15 18:55:19,827 INFO    MainThread:61392 [wandb_run.py:_restore():2411] restore done
+2025-08-15 18:55:20,431 INFO    MainThread:61392 [wandb_run.py:_footer_history_summary_info():3903] rendering history
+2025-08-15 18:55:20,431 INFO    MainThread:61392 [wandb_run.py:_footer_history_summary_info():3935] rendering summary
+2025-08-15 18:55:20,431 INFO    MainThread:61392 [wandb_run.py:_footer_sync_info():3864] logging synced files

@@ -1,0 +1,13 @@
+{"time":"2025-08-15T16:22:13.7263375-04:00","level":"INFO","msg":"stream: starting","core version":"0.21.0"}
+{"time":"2025-08-15T16:22:14.0788685-04:00","level":"INFO","msg":"stream: created new stream","id":"sjimzm22"}
+{"time":"2025-08-15T16:22:14.0788685-04:00","level":"INFO","msg":"stream: started","id":"sjimzm22"}
+{"time":"2025-08-15T16:22:14.0788685-04:00","level":"INFO","msg":"handler: started","stream_id":"sjimzm22"}
+{"time":"2025-08-15T16:22:14.0788685-04:00","level":"INFO","msg":"sender: started","stream_id":"sjimzm22"}
+{"time":"2025-08-15T16:22:14.0788685-04:00","level":"INFO","msg":"writer: Do: started","stream_id":"sjimzm22"}
+{"time":"2025-08-15T17:42:10.1766782-04:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-08-15T17:42:10.345008-04:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2025-08-15T17:42:10.3490815-04:00","level":"INFO","msg":"stream: closing","id":"sjimzm22"}
+{"time":"2025-08-15T17:42:10.3490815-04:00","level":"INFO","msg":"handler: closed","stream_id":"sjimzm22"}
+{"time":"2025-08-15T17:42:10.3490815-04:00","level":"INFO","msg":"sender: closed","stream_id":"sjimzm22"}
+{"time":"2025-08-15T17:42:10.3490815-04:00","level":"INFO","msg":"writer: Close: closed","stream_id":"sjimzm22"}
+{"time":"2025-08-15T17:42:10.3494008-04:00","level":"INFO","msg":"stream: closed","id":"sjimzm22"}

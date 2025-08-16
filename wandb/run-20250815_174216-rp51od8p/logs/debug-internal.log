@@ -1,0 +1,13 @@
+{"time":"2025-08-15T17:42:17.2117092-04:00","level":"INFO","msg":"stream: starting","core version":"0.21.0"}
+{"time":"2025-08-15T17:42:17.4430585-04:00","level":"INFO","msg":"stream: created new stream","id":"rp51od8p"}
+{"time":"2025-08-15T17:42:17.4430585-04:00","level":"INFO","msg":"stream: started","id":"rp51od8p"}
+{"time":"2025-08-15T17:42:17.4430585-04:00","level":"INFO","msg":"writer: Do: started","stream_id":"rp51od8p"}
+{"time":"2025-08-15T17:42:17.4430585-04:00","level":"INFO","msg":"sender: started","stream_id":"rp51od8p"}
+{"time":"2025-08-15T17:42:17.4430585-04:00","level":"INFO","msg":"handler: started","stream_id":"rp51od8p"}
+{"time":"2025-08-15T17:42:18.4412992-04:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-08-15T17:42:18.5626954-04:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2025-08-15T17:42:18.5649604-04:00","level":"INFO","msg":"stream: closing","id":"rp51od8p"}
+{"time":"2025-08-15T17:42:18.5649604-04:00","level":"INFO","msg":"handler: closed","stream_id":"rp51od8p"}
+{"time":"2025-08-15T17:42:18.5649604-04:00","level":"INFO","msg":"writer: Close: closed","stream_id":"rp51od8p"}
+{"time":"2025-08-15T17:42:18.5649604-04:00","level":"INFO","msg":"sender: closed","stream_id":"rp51od8p"}
+{"time":"2025-08-15T17:42:18.5649604-04:00","level":"INFO","msg":"stream: closed","id":"rp51od8p"}
