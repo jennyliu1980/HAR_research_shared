@@ -37,11 +37,16 @@ def get_base(dir, data_name, my_type, time_mask, channel_mask, alpha, divide=Non
             dir_suf = 'channel{}_divide{}'.format(channel_mask, divide)
         else:
             raise ValueError("the type is not exist")
-    if epoch != 150:
+    if epoch is not None and epoch != 150:
         dir_suf += '_epoch{}'.format(epoch)
 
-    print("the model path is: {}".format(os.path.join(dir_pre, dir_suf)))
-    return torch.load(os.path.join(dir_pre, dir_suf))
+    model_path = os.path.join(dir_pre, dir_suf)
+    print("Loading pretrained model from: {}".format(model_path))
+
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+
+    return torch.load(model_path)
 
 
 def get_evaluate(base, n_outputs):

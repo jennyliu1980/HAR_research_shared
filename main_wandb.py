@@ -102,6 +102,11 @@ def pretrain_with_wandb(model, data_name, x_train, args):
 
     # Setup optimizer and loss
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer,
+        T_max=args.epoch,
+        eta_min=1e-4
+    )
     loss_func = torch.nn.MSELoss()
 
     # Convert numpy to torch tensor
@@ -213,6 +218,7 @@ def pretrain_with_wandb(model, data_name, x_train, args):
                     'best_loss': best_loss,
                     'best_epoch': best_epoch
                 })
+        scheduler.step()
 
     return best_loss, best_epoch
 

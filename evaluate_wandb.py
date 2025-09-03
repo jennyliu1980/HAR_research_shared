@@ -8,6 +8,7 @@ from dataset import get_data
 from module import get_base, get_evaluate
 from utils import evaluate_record
 import time
+import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -38,12 +39,14 @@ parser.add_argument('--pretrain_epoch', type=int, default=150,
 # Fine-tuning parameters
 parser.add_argument('--batch_size', type=int, default=64,
                     help='batch size for fine-tuning')
-parser.add_argument('--ft_epoch', type=int, default=100,
+parser.add_argument('--ft_epoch', type=int, default=200,
                     help='number of fine-tuning epochs')
 parser.add_argument('--lr', type=float, default=1e-4,
                     help='learning rate for fine-tuning')
 parser.add_argument('--freeze_encoder', action='store_true',
                     help='Freeze encoder weights during fine-tuning')
+parser.add_argument('--force_retrain', action='store_true',
+                    help='Force retraining even if fine-tuned model exists')
 
 # WandB parameters
 parser.add_argument('--wandb_project', type=str, default='har-masking-finetune',
@@ -80,8 +83,8 @@ def evaluate_model(model, data_loader, device, num_classes):
     accuracy = accuracy_score(all_labels, all_preds)
     f1_macro = f1_score(all_labels, all_preds, average='macro')
     f1_weighted = f1_score(all_labels, all_preds, average='weighted')
-    precision = precision_score(all_labels, all_preds, average='macro')
-    recall = recall_score(all_labels, all_preds, average='macro')
+    precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
+    recall = recall_score(all_labels, all_preds, average='macro', zero_division=0)
 
     # Per-class metrics
     f1_per_class = f1_score(all_labels, all_preds, average=None)
@@ -157,6 +160,8 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
     best_val_f1 = 0
     best_model_state = None
     best_epoch = 0
+    # epochs_no_improve = 0
+    # early_stop_patience = 20
 
     print(f"Training on {device}")
     print(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
@@ -165,6 +170,7 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
     for epoch in range(args.ft_epoch):
         epoch_start = time.time()
 
+        # Training phase
         # Training phase
         model.train()
         train_loss = 0
@@ -226,11 +232,12 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
 
             wandb.log(log_dict)
 
-        # Save best model
+        # Save best model and early stopping
         if val_metrics['f1_macro'] > best_val_f1:
             best_val_f1 = val_metrics['f1_macro']
             best_model_state = model.state_dict().copy()
             best_epoch = epoch + 1
+            epochs_no_improve = 0
             print(f'  -> New best val F1: {best_val_f1:.4f}')
 
             if not args.no_wandb:
@@ -238,10 +245,16 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
                     'best_val_f1': best_val_f1,
                     'best_epoch': best_epoch
                 })
+        # 删除else部分和early stopping的代码
+        # else:
+        #     epochs_no_improve += 1
+        #     if epochs_no_improve >= early_stop_patience:
+        #         print(f'\nEarly stopping triggered after {epoch + 1} epochs')
+        #         break
 
     # Load best model for final testing
     print("\n" + "=" * 50)
-    print(f"Loading best model from epoch {best_epoch}")
+    print(f"Loading best model from epoch {best_epoch} (val F1: {best_val_f1:.4f})")
     model.load_state_dict(best_model_state)
 
     # Final test evaluation
@@ -253,6 +266,24 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
     print(f"  F1 (weighted): {test_metrics['f1_weighted']:.4f}")
     print(f"  Precision: {test_metrics['precision']:.4f}")
     print(f"  Recall: {test_metrics['recall']:.4f}")
+
+    # Save fine-tuned model
+    ft_model_dir = f"model/{args.dataset}_finetuned"
+    os.makedirs(ft_model_dir, exist_ok=True)
+
+    ft_model_name = f"{args.type}_tm{args.time_mask}_cm{args.channel_mask}_a{args.alpha}_s{args.seed}.pt"
+    ft_model_path = os.path.join(ft_model_dir, ft_model_name)
+
+    torch.save({
+        'model_state': best_model_state,
+        'config': vars(args),
+        'best_val_f1': best_val_f1,
+        'test_f1': test_metrics['f1_macro'],
+        'test_accuracy': test_metrics['accuracy'],
+        'best_epoch': best_epoch
+    }, ft_model_path)
+
+    print(f"\nFine-tuned model saved to: {ft_model_path}")
 
     # Log test results to WandB
     if not args.no_wandb:
@@ -294,7 +325,6 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
         wandb.log({"summary_table": summary_table})
 
     return test_metrics
-
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -346,6 +376,87 @@ if __name__ == '__main__':
     print(f"  Val:   {x_val.shape}, {y_val.shape}")
     print(f"  Test:  {x_test.shape}, {y_test.shape}")
 
+    # Check for existing fine-tuned model
+    ft_model_dir = f"model/{args.dataset}_finetuned"
+    ft_model_name = f"{args.type}_tm{args.time_mask}_cm{args.channel_mask}_a{args.alpha}_s{args.seed}.pt"
+    ft_model_path = os.path.join(ft_model_dir, ft_model_name)
+
+    if os.path.exists(ft_model_path) and not args.force_retrain:
+        print(f"\n{'=' * 60}")
+        print(f"Found existing fine-tuned model at: {ft_model_path}")
+        print("Loading and evaluating directly...")
+        print(f"{'=' * 60}")
+
+        checkpoint = torch.load(ft_model_path)
+
+        # Load pretrained model to get architecture
+        print(f"\nLoading model architecture...")
+        try:
+            pretrained_model = get_base(
+                args.model_dir, args.dataset, args.type,
+                args.time_mask, args.channel_mask, args.alpha,
+                divide=args.seed if args.dataset != 'uschad' else None,
+                epoch=None  # Don't use epoch suffix
+            )
+        except Exception as e:
+            print(f"Error loading pretrained model: {e}")
+            if not args.no_wandb:
+                wandb.finish()
+            exit(1)
+
+        # Create evaluation model and load fine-tuned weights
+        eval_model = get_evaluate(pretrained_model, n_outputs)
+        eval_model.load_state_dict(checkpoint['model_state'])
+
+        # Direct evaluation
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        eval_model = eval_model.to(device)
+
+        x_test_tensor = torch.from_numpy(x_test).float()
+        y_test_tensor = torch.from_numpy(y_test).float()
+        test_dataset = torch.utils.data.TensorDataset(x_test_tensor, y_test_tensor)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+
+        test_metrics = evaluate_model(eval_model, test_loader, device, n_outputs)
+
+        print("\n" + "=" * 60)
+        print("FINE-TUNED MODEL EVALUATION:")
+        print(f"  Training config:")
+        print(f"    Best val F1: {checkpoint['best_val_f1']:.4f}")
+        print(f"    Best epoch: {checkpoint['best_epoch']}")
+        print(f"    Previous test F1: {checkpoint['test_f1']:.4f}")
+        print(f"\nCurrent Test Results:")
+        print(f"  Accuracy: {test_metrics['accuracy']:.4f}")
+        print(f"  F1 (macro): {test_metrics['f1_macro']:.4f}")
+        print(f"  F1 (weighted): {test_metrics['f1_weighted']:.4f}")
+        print(f"  Precision: {test_metrics['precision']:.4f}")
+        print(f"  Recall: {test_metrics['recall']:.4f}")
+        print("=" * 60)
+
+        # Record results
+        evaluate_record(
+            args.dataset, args.type, args.time_mask, args.channel_mask,
+            args.alpha, None, test_metrics['f1_macro'],
+            divide=args.seed if args.dataset != 'uschad' else None
+        )
+
+        print(f"\nResults saved to {args.dataset}_record.txt")
+
+        if not args.no_wandb:
+            wandb.log({
+                'test_accuracy': test_metrics['accuracy'],
+                'test_f1_macro': test_metrics['f1_macro'],
+                'test_f1_weighted': test_metrics['f1_weighted'],
+                'test_precision': test_metrics['precision'],
+                'test_recall': test_metrics['recall'],
+                'loaded_from_checkpoint': True
+            })
+            wandb.finish()
+        exit(0)
+
+    # If no fine-tuned model exists or force_retrain, proceed with training
+    print(f"\nNo fine-tuned model found or force_retrain=True, proceeding with fine-tuning...")
+
     # Load pretrained model
     print(f"\nLoading pretrained model...")
     try:
@@ -353,7 +464,7 @@ if __name__ == '__main__':
             args.model_dir, args.dataset, args.type,
             args.time_mask, args.channel_mask, args.alpha,
             divide=args.seed if args.dataset != 'uschad' else None,
-            epoch=args.pretrain_epoch if args.pretrain_epoch != 150 else None
+            epoch=None  # Don't use epoch suffix
         )
         print("Pretrained model loaded successfully!")
     except Exception as e:
@@ -389,8 +500,7 @@ if __name__ == '__main__':
     evaluate_record(
         args.dataset, args.type, args.time_mask, args.channel_mask,
         args.alpha, None, test_metrics['f1_macro'],
-        divide=args.seed if args.dataset != 'uschad' else None,
-        epoch=args.pretrain_epoch if args.pretrain_epoch != 150 else None
+        divide=args.seed if args.dataset != 'uschad' else None
     )
 
     print(f"\nResults saved to {args.dataset}_record.txt")
