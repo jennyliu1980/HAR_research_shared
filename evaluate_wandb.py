@@ -5,62 +5,105 @@ import wandb
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
 import argparse
 from dataset import get_data
-from module import get_base, get_evaluate
-from utils import evaluate_record
+from module import get_base, get_evaluate, get_evaluate_simple
 import time
 import os
-import seaborn as sns
-import matplotlib.pyplot as plt
+import json
+import random
 
-parser = argparse.ArgumentParser(description='Fine-tuning and evaluation with WandB')
+parser = argparse.ArgumentParser(description='Fine-tuning for HAR with WandB')
 
 # Dataset parameters
 parser.add_argument('--dir', type=str, default='datasets/sub', help='dataset path')
 parser.add_argument('--dataset', type=str, default='ucihar',
                     choices=['ucihar', 'motion', 'uschad'], help='dataset')
-parser.add_argument('--seed', type=int, default=100,
-                    help='random seed for dataset division')
 
-# Pretrained model parameters
-parser.add_argument('--model_dir', type=str, default='model',
-                    help='pretrained model directory')
+# Model parameters
+parser.add_argument('--model_dir', type=str, default='model', help='pretrained model directory')
 parser.add_argument('--type', type=str, default='channel',
-                    choices=['time', 'spantime', 'spantime_channel', 'time_channel', 'channel'],
-                    help='masking strategies')
-parser.add_argument('--channel_mask', type=int, default=3,
-                    help='number of channel masks')
-parser.add_argument('--time_mask', type=int, default=3,
-                    help='time mask ratio')
-parser.add_argument('--alpha', type=float, default=0.5,
-                    help='the hyperparameter alpha')
-parser.add_argument('--pretrain_epoch', type=int, default=150,
-                    help='pretrain epochs used')
+                    choices=['time', 'spantime', 'spantime_channel', 'time_channel', 'channel'])
+parser.add_argument('--channel_mask', type=int, default=3)
+parser.add_argument('--time_mask', type=int, default=15)
+parser.add_argument('--alpha', type=float, default=0.5)
 
-# Fine-tuning parameters
-parser.add_argument('--batch_size', type=int, default=64,
-                    help='batch size for fine-tuning')
-parser.add_argument('--ft_epoch', type=int, default=200,
-                    help='number of fine-tuning epochs')
-parser.add_argument('--lr', type=float, default=1e-4,
-                    help='learning rate for fine-tuning')
-parser.add_argument('--freeze_encoder', action='store_true',
-                    help='Freeze encoder weights during fine-tuning')
-parser.add_argument('--force_retrain', action='store_true',
-                    help='Force retraining even if fine-tuned model exists')
+# Training parameters
+parser.add_argument('--batch_size', type=int, default=1024, help='batch size for fine-tuning')
+parser.add_argument('--ft_epoch', type=int, default=100, help='number of fine-tuning epochs')
+parser.add_argument('--lr', type=float, default=1e-3, help='learning rate for fine-tuning')
+
+# New parameters for experimentation
+parser.add_argument('--eval_head', type=str, default='complex',
+                    choices=['simple', 'complex'], help='Evaluation head type')
+parser.add_argument('--normalize_per_channel', type=bool, default=True,
+                    help='Normalize each channel independently')
+parser.add_argument('--optimizer', type=str, default='adam',
+                    choices=['adam', 'adamw', 'sgd'], help='Optimizer type')
+parser.add_argument('--weight_decay', type=float, default=0.0, help='Weight decay for optimizer')
+parser.add_argument('--scheduler', type=str, default='none',
+                    choices=['none', 'cosine', 'step', 'onecycle'], help='Learning rate scheduler')
+parser.add_argument('--dropout_rate', type=float, default=0.1, help='Dropout rate in evaluation head')
+parser.add_argument('--warmup_epochs', type=int, default=10, help='Number of warmup epochs')
 
 # WandB parameters
-parser.add_argument('--wandb_project', type=str, default='har-masking-finetune',
+parser.add_argument('--wandb_project', type=str, default='har-masking-final',
                     help='WandB project name')
 parser.add_argument('--wandb_entity', type=str, default=None,
                     help='WandB entity/team name')
-parser.add_argument('--wandb_name', type=str, default=None,
-                    help='WandB run name')
 parser.add_argument('--no_wandb', action='store_true',
                     help='Disable WandB logging')
+parser.add_argument('--exp_suffix', type=str, default='',
+                    help='Suffix for experiment name')
+
+
+def set_random_seeds(seed=42):
+    """Set all random seeds for reproducibility"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def get_evaluate_complex(base, n_outputs, dropout_rate=0.1):
+    """Complex evaluation head with configurable dropout"""
+    base_encoder = base.encoder
+    base_encoder.requires_grad_(False)
+
+    class ComplexClassifier(nn.Module):
+        def __init__(self, encoder, n_outputs, dropout_rate):
+            super().__init__()
+            self.encoder = encoder
+            self.pool = nn.AdaptiveAvgPool1d(1)
+            self.flatten = nn.Flatten()
+
+            # Complex head with BatchNorm and Dropout
+            self.classifier = nn.Sequential(
+                nn.Linear(encoder.d_model, 256),
+                nn.BatchNorm1d(256),
+                nn.ReLU(),
+                nn.Dropout(dropout_rate),
+                nn.Linear(256, 128),
+                nn.BatchNorm1d(128),
+                nn.ReLU(),
+                nn.Dropout(dropout_rate),
+                nn.Linear(128, n_outputs)
+            )
+
+        def forward(self, x):
+            x = self.encoder(x)  # (batch, seq_len, d_model)
+            x = x.transpose(1, 2)  # (batch, d_model, seq_len)
+            x = self.pool(x)  # (batch, d_model, 1)
+            x = self.flatten(x)  # (batch, d_model)
+            x = self.classifier(x)  # (batch, n_outputs)
+            return x
+
+    return ComplexClassifier(base_encoder, n_outputs, dropout_rate)
 
 
 def evaluate_model(model, data_loader, device, num_classes):
-    """Evaluate model and return metrics"""
+    """Evaluate model and return comprehensive metrics"""
     model.eval()
     all_preds = []
     all_labels = []
@@ -68,11 +111,9 @@ def evaluate_model(model, data_loader, device, num_classes):
     with torch.no_grad():
         for batch_x, batch_y in data_loader:
             batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-
             outputs = model(batch_x)
             preds = torch.argmax(outputs, dim=1)
             labels = torch.argmax(batch_y, dim=1)
-
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
@@ -85,11 +126,7 @@ def evaluate_model(model, data_loader, device, num_classes):
     f1_weighted = f1_score(all_labels, all_preds, average='weighted')
     precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
     recall = recall_score(all_labels, all_preds, average='macro', zero_division=0)
-
-    # Per-class metrics
     f1_per_class = f1_score(all_labels, all_preds, average=None)
-
-    # Confusion matrix
     cm = confusion_matrix(all_labels, all_preds)
 
     return {
@@ -99,45 +136,60 @@ def evaluate_model(model, data_loader, device, num_classes):
         'precision': precision,
         'recall': recall,
         'f1_per_class': f1_per_class,
-        'confusion_matrix': cm,
-        'predictions': all_preds,
-        'labels': all_labels
+        'confusion_matrix': cm
     }
 
 
-def plot_confusion_matrix(cm, class_names=None):
-    """Create confusion matrix plot"""
-    fig, ax = plt.subplots(figsize=(10, 8))
+def get_optimizer(model, args):
+    """Get optimizer based on arguments"""
+    params = filter(lambda p: p.requires_grad, model.parameters())
 
-    if class_names is None:
-        class_names = [f'Class {i}' for i in range(len(cm))]
-
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-                xticklabels=class_names, yticklabels=class_names, ax=ax)
-    ax.set_xlabel('Predicted')
-    ax.set_ylabel('Actual')
-    ax.set_title('Confusion Matrix')
-
-    return fig
+    if args.optimizer == 'adam':
+        return torch.optim.Adam(params, lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer == 'adamw':
+        return torch.optim.AdamW(params, lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer == 'sgd':
+        return torch.optim.SGD(params, lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+    else:
+        raise ValueError(f"Unknown optimizer: {args.optimizer}")
 
 
-def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, args):
-    """Fine-tune model with WandB logging"""
+def get_scheduler(optimizer, args, total_steps):
+    """Get learning rate scheduler based on arguments"""
+    if args.scheduler == 'none':
+        return None
+    elif args.scheduler == 'cosine':
+        return torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=args.ft_epoch, eta_min=1e-5
+        )
+    elif args.scheduler == 'step':
+        return torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=30, gamma=0.1
+        )
+    elif args.scheduler == 'onecycle':
+        return torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, max_lr=args.lr, total_steps=total_steps,
+            pct_start=args.warmup_epochs / args.ft_epoch
+        )
+    else:
+        raise ValueError(f"Unknown scheduler: {args.scheduler}")
+
+
+def fine_tune_with_wandb(model, x_train, y_train, x_test, y_test, args):
+    """Fine-tune model without validation set"""
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
 
-    # Optionally freeze encoder
-    if args.freeze_encoder:
-        for param in model[0].parameters():  # model[0] is the encoder
+    # Freeze encoder (first component of the model)
+    if hasattr(model, 'encoder'):
+        for param in model.encoder.parameters():
             param.requires_grad = False
         print("Encoder weights frozen")
 
     # Convert to tensors
     x_train = torch.from_numpy(x_train).float()
     y_train = torch.from_numpy(y_train).float()
-    x_val = torch.from_numpy(x_val).float()
-    y_val = torch.from_numpy(y_val).float()
     x_test = torch.from_numpy(x_test).float()
     y_test = torch.from_numpy(y_test).float()
 
@@ -145,33 +197,32 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
     train_dataset = torch.utils.data.TensorDataset(x_train, y_train)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-    val_dataset = torch.utils.data.TensorDataset(x_val, y_val)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
-
     test_dataset = torch.utils.data.TensorDataset(x_test, y_test)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', patience=10, factor=0.5)
+    optimizer = get_optimizer(model, args)
+
+    # Scheduler
+    total_steps = len(train_loader) * args.ft_epoch
+    scheduler = get_scheduler(optimizer, args, total_steps)
 
     num_classes = y_train.shape[1]
-    best_val_f1 = 0
+    best_test_f1 = 0
     best_model_state = None
     best_epoch = 0
-    # epochs_no_improve = 0
-    # early_stop_patience = 20
 
     print(f"Training on {device}")
-    print(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
+    print(f"Train samples: {len(x_train)}, Test samples: {len(x_test)}")
+    print(f"Optimizer: {args.optimizer}, LR: {args.lr}, WD: {args.weight_decay}")
+    print(f"Scheduler: {args.scheduler}, Eval Head: {args.eval_head}")
 
     # Training loop
     for epoch in range(args.ft_epoch):
         epoch_start = time.time()
 
-        # Training phase
-        # Training phase
+        # Training
         model.train()
         train_loss = 0
         train_preds = []
@@ -182,33 +233,38 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
 
             optimizer.zero_grad()
             outputs = model(batch_x)
-
             labels = torch.argmax(batch_y, dim=1)
             loss = criterion(outputs, labels)
-
             loss.backward()
             optimizer.step()
+
+            if args.scheduler == 'onecycle':
+                scheduler.step()
 
             train_loss += loss.item()
             train_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
             train_labels.extend(labels.cpu().numpy())
+
+        # Step scheduler (except for onecycle which steps per batch)
+        if scheduler and args.scheduler != 'onecycle':
+            scheduler.step()
 
         # Training metrics
         train_acc = accuracy_score(train_labels, train_preds)
         train_f1 = f1_score(train_labels, train_preds, average='macro')
         avg_train_loss = train_loss / len(train_loader)
 
-        # Validation phase
-        val_metrics = evaluate_model(model, val_loader, device, num_classes)
+        # Test evaluation
+        test_metrics = evaluate_model(model, test_loader, device, num_classes)
 
         epoch_time = time.time() - epoch_start
 
-        # Update learning rate
-        scheduler.step(val_metrics['f1_macro'])
+        current_lr = optimizer.param_groups[0]['lr']
 
-        print(f'Epoch [{epoch + 1}/{args.ft_epoch}] ({epoch_time:.1f}s)')
-        print(f'  Train - Loss: {avg_train_loss:.4f}, Acc: {train_acc:.4f}, F1: {train_f1:.4f}')
-        print(f'  Val   - Acc: {val_metrics["accuracy"]:.4f}, F1: {val_metrics["f1_macro"]:.4f}')
+        if (epoch + 1) % 10 == 0:
+            print(f'Epoch [{epoch + 1}/{args.ft_epoch}] ({epoch_time:.1f}s) LR: {current_lr:.6f}')
+            print(f'  Train - Loss: {avg_train_loss:.4f}, Acc: {train_acc:.4f}, F1: {train_f1:.4f}')
+            print(f'  Test  - Acc: {test_metrics["accuracy"]:.4f}, F1: {test_metrics["f1_macro"]:.4f}')
 
         # Log to WandB
         if not args.no_wandb:
@@ -217,294 +273,198 @@ def fine_tune_with_wandb(model, x_train, y_train, x_val, y_val, x_test, y_test, 
                 'train_loss': avg_train_loss,
                 'train_acc': train_acc,
                 'train_f1': train_f1,
-                'val_acc': val_metrics['accuracy'],
-                'val_f1_macro': val_metrics['f1_macro'],
-                'val_f1_weighted': val_metrics['f1_weighted'],
-                'val_precision': val_metrics['precision'],
-                'val_recall': val_metrics['recall'],
-                'learning_rate': optimizer.param_groups[0]['lr'],
+                'test_acc': test_metrics['accuracy'],
+                'test_f1_macro': test_metrics['f1_macro'],
+                'test_f1_weighted': test_metrics['f1_weighted'],
+                'test_precision': test_metrics['precision'],
+                'test_recall': test_metrics['recall'],
+                'learning_rate': current_lr,
                 'epoch_time': epoch_time
             }
-
-            # Log per-class F1 scores
-            for i, f1 in enumerate(val_metrics['f1_per_class']):
-                log_dict[f'val_f1_class_{i}'] = f1
-
             wandb.log(log_dict)
 
-        # Save best model and early stopping
-        if val_metrics['f1_macro'] > best_val_f1:
-            best_val_f1 = val_metrics['f1_macro']
+        # Save best model
+        if test_metrics['f1_macro'] > best_test_f1:
+            best_test_f1 = test_metrics['f1_macro']
             best_model_state = model.state_dict().copy()
             best_epoch = epoch + 1
-            epochs_no_improve = 0
-            print(f'  -> New best val F1: {best_val_f1:.4f}')
+            print(f'  -> New best test F1: {best_test_f1:.4f}')
 
-            if not args.no_wandb:
-                wandb.log({
-                    'best_val_f1': best_val_f1,
-                    'best_epoch': best_epoch
-                })
-        # 删除else部分和early stopping的代码
-        # else:
-        #     epochs_no_improve += 1
-        #     if epochs_no_improve >= early_stop_patience:
-        #         print(f'\nEarly stopping triggered after {epoch + 1} epochs')
-        #         break
-
-    # Load best model for final testing
-    print("\n" + "=" * 50)
-    print(f"Loading best model from epoch {best_epoch} (val F1: {best_val_f1:.4f})")
-    model.load_state_dict(best_model_state)
-
-    # Final test evaluation
+    # Load best model for final evaluation
+    if best_model_state is not None:
+        model.load_state_dict(best_model_state)
     test_metrics = evaluate_model(model, test_loader, device, num_classes)
 
-    print("\nFinal Test Results:")
+    print("\n" + "=" * 50)
+    print(f"Final Test Results:")
+    print(f"  F1 Score: {test_metrics['f1_macro']:.4f}")
     print(f"  Accuracy: {test_metrics['accuracy']:.4f}")
-    print(f"  F1 (macro): {test_metrics['f1_macro']:.4f}")
-    print(f"  F1 (weighted): {test_metrics['f1_weighted']:.4f}")
     print(f"  Precision: {test_metrics['precision']:.4f}")
     print(f"  Recall: {test_metrics['recall']:.4f}")
+    print(f"  Best F1: {best_test_f1:.4f} at epoch {best_epoch}")
+    print("=" * 50)
 
-    # Save fine-tuned model
-    ft_model_dir = f"model/{args.dataset}_finetuned"
-    os.makedirs(ft_model_dir, exist_ok=True)
-
-    ft_model_name = f"{args.type}_tm{args.time_mask}_cm{args.channel_mask}_a{args.alpha}_s{args.seed}.pt"
-    ft_model_path = os.path.join(ft_model_dir, ft_model_name)
-
-    torch.save({
-        'model_state': best_model_state,
-        'config': vars(args),
-        'best_val_f1': best_val_f1,
-        'test_f1': test_metrics['f1_macro'],
-        'test_accuracy': test_metrics['accuracy'],
-        'best_epoch': best_epoch
-    }, ft_model_path)
-
-    print(f"\nFine-tuned model saved to: {ft_model_path}")
-
-    # Log test results to WandB
+    # Log final results to WandB
     if not args.no_wandb:
-        # Log final test metrics
-        wandb.log({
-            'test_accuracy': test_metrics['accuracy'],
-            'test_f1_macro': test_metrics['f1_macro'],
-            'test_f1_weighted': test_metrics['f1_weighted'],
-            'test_precision': test_metrics['precision'],
-            'test_recall': test_metrics['recall']
-        })
-
-        # Log per-class test F1
-        for i, f1 in enumerate(test_metrics['f1_per_class']):
-            wandb.log({f'test_f1_class_{i}': f1})
-
-        # Create and log confusion matrix
-        class_names = None
-        if args.dataset == 'ucihar':
-            class_names = ['Walking', 'Upstairs', 'Downstairs', 'Sitting', 'Standing', 'Laying']
-
-        fig = plot_confusion_matrix(test_metrics['confusion_matrix'], class_names)
-        wandb.log({"confusion_matrix": wandb.Image(fig)})
-        plt.close(fig)
-
-        # Create summary table
-        summary_table = wandb.Table(
-            columns=["Metric", "Value"],
-            data=[
-                ["Test Accuracy", test_metrics['accuracy']],
-                ["Test F1 (macro)", test_metrics['f1_macro']],
-                ["Test F1 (weighted)", test_metrics['f1_weighted']],
-                ["Test Precision", test_metrics['precision']],
-                ["Test Recall", test_metrics['recall']],
-                ["Best Val F1", best_val_f1],
-                ["Best Epoch", best_epoch]
-            ]
-        )
-        wandb.log({"summary_table": summary_table})
+        wandb.summary['final_test_accuracy'] = test_metrics['accuracy']
+        wandb.summary['final_test_f1_macro'] = test_metrics['f1_macro']
+        wandb.summary['final_test_f1_weighted'] = test_metrics['f1_weighted']
+        wandb.summary['final_test_precision'] = test_metrics['precision']
+        wandb.summary['final_test_recall'] = test_metrics['recall']
+        wandb.summary['best_epoch'] = best_epoch
+        wandb.summary['eval_head'] = args.eval_head
+        wandb.summary['optimizer'] = args.optimizer
+        wandb.summary['scheduler'] = args.scheduler
 
     return test_metrics
+
+
+def save_experiment_report(args, test_metrics, wandb_run_name, wandb_url):
+    """Save detailed experiment report to file"""
+
+    report = {
+        'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'experiment_name': f"{args.type}_tm{args.time_mask}_cm{args.channel_mask}_a{args.alpha}_{args.exp_suffix}",
+        'wandb_run_name': wandb_run_name,
+        'wandb_url': wandb_url,
+        'dataset': args.dataset,
+        'configuration': {
+            'masking_type': args.type,
+            'time_mask_percent': args.time_mask,
+            'channel_mask_num': args.channel_mask,
+            'alpha': args.alpha,
+            'batch_size': args.batch_size,
+            'learning_rate': args.lr,
+            'epochs': args.ft_epoch,
+            'eval_head': args.eval_head,
+            'optimizer': args.optimizer,
+            'scheduler': args.scheduler,
+            'weight_decay': args.weight_decay,
+            'dropout_rate': args.dropout_rate,
+            'normalize_per_channel': args.normalize_per_channel
+        },
+        'results': {
+            'test_f1_macro': float(test_metrics['f1_macro']),
+            'test_accuracy': float(test_metrics['accuracy']),
+            'test_f1_weighted': float(test_metrics['f1_weighted']),
+            'test_precision': float(test_metrics['precision']),
+            'test_recall': float(test_metrics['recall']),
+            'per_class_f1': test_metrics['f1_per_class'].tolist()
+        }
+    }
+
+    # Save JSON report
+    report_file = f"experiments/{args.dataset}_experiments_detailed.json"
+    os.makedirs("experiments", exist_ok=True)
+
+    if os.path.exists(report_file):
+        with open(report_file, 'r') as f:
+            all_reports = json.load(f)
+    else:
+        all_reports = []
+
+    all_reports.append(report)
+
+    with open(report_file, 'w') as f:
+        json.dump(all_reports, f, indent=2)
+
+    # Save human-readable report
+    txt_file = f"experiments/{args.dataset}_results_detailed.txt"
+    with open(txt_file, 'a') as f:
+        f.write("\n" + "=" * 70 + "\n")
+        f.write(f"Experiment: {report['experiment_name']}\n")
+        f.write(f"Timestamp: {report['timestamp']}\n")
+        f.write(f"WandB: {wandb_run_name} ({wandb_url})\n")
+        f.write("-" * 70 + "\n")
+        f.write(f"Configuration:\n")
+        f.write(f"  Masking Type: {args.type}\n")
+        f.write(f"  Time Mask: {args.time_mask}%\n")
+        f.write(f"  Channel Mask: {args.channel_mask} channels\n")
+        f.write(f"  Alpha: {args.alpha}\n")
+        f.write(f"  Eval Head: {args.eval_head}\n")
+        f.write(f"  Optimizer: {args.optimizer} (LR: {args.lr}, WD: {args.weight_decay})\n")
+        f.write(f"  Scheduler: {args.scheduler}\n")
+        f.write("-" * 70 + "\n")
+        f.write(f"Results:\n")
+        f.write(f"  F1 Score (macro): {test_metrics['f1_macro']:.4f}\n")
+        f.write(f"  Accuracy: {test_metrics['accuracy']:.4f}\n")
+        f.write(f"  Precision: {test_metrics['precision']:.4f}\n")
+        f.write(f"  Recall: {test_metrics['recall']:.4f}\n")
+        f.write("=" * 70 + "\n")
+
+    print(f"\nExperiment report saved to {txt_file}")
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    # Set random seeds
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(args.seed)
+    # Set random seeds for reproducibility
+    set_random_seeds(42)
 
     # Initialize WandB
-    if not args.no_wandb:
-        if args.wandb_name is None:
-            args.wandb_name = f"ft_{args.dataset}_{args.type}_tm{args.time_mask}_cm{args.channel_mask}_a{args.alpha}_s{args.seed}"
+    wandb_run_name = f"{args.dataset}_{args.type}_tm{args.time_mask}_cm{args.channel_mask}_a{args.alpha}_{args.eval_head}_lr{args.lr}_{args.exp_suffix}"
+    wandb_url = None
 
+    if not args.no_wandb:
         wandb.init(
             project=args.wandb_project,
             entity=args.wandb_entity,
-            name=args.wandb_name,
+            name=wandb_run_name,
             config=vars(args),
-            tags=[args.dataset, args.type, "finetune", f"seed{args.seed}"]
+            tags=[args.dataset, args.type, "finetune", args.eval_head, args.optimizer]
         )
+        wandb_url = wandb.run.get_url() if wandb.run else ""
 
     print("=" * 60)
     print("Fine-tuning for Human Activity Recognition")
     print("=" * 60)
     print(f"Dataset: {args.dataset}")
-    print(f"Pretrained model: {args.type}")
-    if args.type in ['time', 'spantime', 'time_channel', 'spantime_channel']:
-        print(f"  Time mask: {args.time_mask}%")
-    if args.type in ['channel', 'time_channel', 'spantime_channel']:
-        print(f"  Channel mask: {args.channel_mask}")
-    if args.type in ['time_channel', 'spantime_channel']:
-        print(f"  Alpha: {args.alpha}")
-    print("=" * 60)
+    print(f"Model: {args.type}")
+    print(f"Parameters: time_mask={args.time_mask}%, channel_mask={args.channel_mask}, alpha={args.alpha}")
+    print(f"Eval Head: {args.eval_head}")
+    if wandb_url:
+        print(f"WandB: {wandb_url}")
 
-    # Load dataset
+    # Load dataset with new normalization option
     print(f"\nLoading {args.dataset} dataset...")
-    x_train, y_train, x_val, y_val, x_test, y_test = get_data(
-        args.dir, args.dataset, transformer=True, divide_seed=args.seed
+    x_train, y_train, x_test, y_test = get_data(
+        args.dir, args.dataset,
+        transformer=True,
+        normalize_per_channel=args.normalize_per_channel
     )
 
-    n_timesteps = x_train.shape[1]
-    n_features = x_train.shape[2]
     n_outputs = y_train.shape[1]
-
-    print(f"Dataset shapes:")
-    print(f"  Train: {x_train.shape}, {y_train.shape}")
-    print(f"  Val:   {x_val.shape}, {y_val.shape}")
-    print(f"  Test:  {x_test.shape}, {y_test.shape}")
-
-    # Check for existing fine-tuned model
-    ft_model_dir = f"model/{args.dataset}_finetuned"
-    ft_model_name = f"{args.type}_tm{args.time_mask}_cm{args.channel_mask}_a{args.alpha}_s{args.seed}.pt"
-    ft_model_path = os.path.join(ft_model_dir, ft_model_name)
-
-    if os.path.exists(ft_model_path) and not args.force_retrain:
-        print(f"\n{'=' * 60}")
-        print(f"Found existing fine-tuned model at: {ft_model_path}")
-        print("Loading and evaluating directly...")
-        print(f"{'=' * 60}")
-
-        checkpoint = torch.load(ft_model_path)
-
-        # Load pretrained model to get architecture
-        print(f"\nLoading model architecture...")
-        try:
-            pretrained_model = get_base(
-                args.model_dir, args.dataset, args.type,
-                args.time_mask, args.channel_mask, args.alpha,
-                divide=args.seed if args.dataset != 'uschad' else None,
-                epoch=None  # Don't use epoch suffix
-            )
-        except Exception as e:
-            print(f"Error loading pretrained model: {e}")
-            if not args.no_wandb:
-                wandb.finish()
-            exit(1)
-
-        # Create evaluation model and load fine-tuned weights
-        eval_model = get_evaluate(pretrained_model, n_outputs)
-        eval_model.load_state_dict(checkpoint['model_state'])
-
-        # Direct evaluation
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        eval_model = eval_model.to(device)
-
-        x_test_tensor = torch.from_numpy(x_test).float()
-        y_test_tensor = torch.from_numpy(y_test).float()
-        test_dataset = torch.utils.data.TensorDataset(x_test_tensor, y_test_tensor)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
-        test_metrics = evaluate_model(eval_model, test_loader, device, n_outputs)
-
-        print("\n" + "=" * 60)
-        print("FINE-TUNED MODEL EVALUATION:")
-        print(f"  Training config:")
-        print(f"    Best val F1: {checkpoint['best_val_f1']:.4f}")
-        print(f"    Best epoch: {checkpoint['best_epoch']}")
-        print(f"    Previous test F1: {checkpoint['test_f1']:.4f}")
-        print(f"\nCurrent Test Results:")
-        print(f"  Accuracy: {test_metrics['accuracy']:.4f}")
-        print(f"  F1 (macro): {test_metrics['f1_macro']:.4f}")
-        print(f"  F1 (weighted): {test_metrics['f1_weighted']:.4f}")
-        print(f"  Precision: {test_metrics['precision']:.4f}")
-        print(f"  Recall: {test_metrics['recall']:.4f}")
-        print("=" * 60)
-
-        # Record results
-        evaluate_record(
-            args.dataset, args.type, args.time_mask, args.channel_mask,
-            args.alpha, None, test_metrics['f1_macro'],
-            divide=args.seed if args.dataset != 'uschad' else None
-        )
-
-        print(f"\nResults saved to {args.dataset}_record.txt")
-
-        if not args.no_wandb:
-            wandb.log({
-                'test_accuracy': test_metrics['accuracy'],
-                'test_f1_macro': test_metrics['f1_macro'],
-                'test_f1_weighted': test_metrics['f1_weighted'],
-                'test_precision': test_metrics['precision'],
-                'test_recall': test_metrics['recall'],
-                'loaded_from_checkpoint': True
-            })
-            wandb.finish()
-        exit(0)
-
-    # If no fine-tuned model exists or force_retrain, proceed with training
-    print(f"\nNo fine-tuned model found or force_retrain=True, proceeding with fine-tuning...")
+    print(f"Train shape: {x_train.shape}, Test shape: {x_test.shape}")
 
     # Load pretrained model
     print(f"\nLoading pretrained model...")
     try:
+        divide = None if args.dataset == 'uschad' else 100
         pretrained_model = get_base(
             args.model_dir, args.dataset, args.type,
             args.time_mask, args.channel_mask, args.alpha,
-            divide=args.seed if args.dataset != 'uschad' else None,
-            epoch=None  # Don't use epoch suffix
+            divide=divide
         )
         print("Pretrained model loaded successfully!")
     except Exception as e:
         print(f"Error loading pretrained model: {e}")
-        print("Make sure you have run the pretraining script first.")
+        print("Please run pretraining first!")
         if not args.no_wandb:
             wandb.finish()
         exit(1)
 
-    # Create evaluation model
-    eval_model = get_evaluate(pretrained_model, n_outputs)
+    # Create evaluation model based on specified type
+    if args.eval_head == 'simple':
+        eval_model = get_evaluate_simple(pretrained_model, n_outputs)
+    else:  # complex
+        eval_model = get_evaluate_complex(pretrained_model, n_outputs, args.dropout_rate)
 
-    # Count parameters
-    total_params = sum(p.numel() for p in eval_model.parameters())
-    trainable_params = sum(p.numel() for p in eval_model.parameters() if p.requires_grad)
-    print(f"Model parameters:")
-    print(f"  Total: {total_params:,}")
-    print(f"  Trainable: {trainable_params:,}")
-
-    # Start fine-tuning
+    # Fine-tune
     print(f"\nStarting fine-tuning...")
-    print(f"  Epochs: {args.ft_epoch}")
-    print(f"  Batch size: {args.batch_size}")
-    print(f"  Learning rate: {args.lr}")
-    print(f"  Freeze encoder: {args.freeze_encoder}")
-    print("=" * 60)
+    test_metrics = fine_tune_with_wandb(eval_model, x_train, y_train, x_test, y_test, args)
 
-    test_metrics = fine_tune_with_wandb(
-        eval_model, x_train, y_train, x_val, y_val, x_test, y_test, args
-    )
-
-    # Record results
-    evaluate_record(
-        args.dataset, args.type, args.time_mask, args.channel_mask,
-        args.alpha, None, test_metrics['f1_macro'],
-        divide=args.seed if args.dataset != 'uschad' else None
-    )
-
-    print(f"\nResults saved to {args.dataset}_record.txt")
-    print("=" * 60)
+    # Save detailed report
+    save_experiment_report(args, test_metrics, wandb_run_name, wandb_url)
 
     if not args.no_wandb:
         wandb.finish()
