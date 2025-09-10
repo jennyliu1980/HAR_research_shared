@@ -352,7 +352,7 @@ def generate_comprehensive_report(all_experiments):
     print(f"✓ Detailed results saved to {json_file}")
 
 
-def main():
+def main(quick_mode=False):
     """Main experiment runner with hyperparameter search"""
 
     print("\n" + "=" * 80)
@@ -418,7 +418,22 @@ def main():
         }
     ]
 
-    print(f"\nRunning hyperparameter search for {len(experiments)} configurations")
+    if quick_mode:
+        print("\nRunning in QUICK MODE (fewer experiments)")
+        experiments = experiments[:3]  # Only first 3 for quick test
+        print(f"Reduced to {len(experiments)} configurations")
+
+    # Calculate total experiments
+    n_configs = len(experiments)
+    if quick_mode:
+        n_hyperparams = 2 * 1 * 1 * 1  # 2 LR × 1 head × 1 optimizer × 1 scheduler
+    else:
+        n_hyperparams = 3 * 2 * 1 * 2  # 3 LR × 2 heads × 1 optimizer × 2 schedulers = 12
+    total_experiments = n_configs * n_hyperparams
+
+    print(f"\nTotal experiments to run: {total_experiments}")
+    print(f"  Configurations: {n_configs}")
+    print(f"  Hyperparameter combinations per config: {n_hyperparams}")
     print("\nExpected results from paper:")
     for exp in experiments:
         print(f"  {exp['name']}: F1={exp['expected_f1']:.4f}")
@@ -433,7 +448,8 @@ def main():
             time_mask=exp['time_mask'],
             channel_mask=exp['channel_mask'],
             alpha=exp['alpha'],
-            expected_f1=exp['expected_f1']
+            expected_f1=exp['expected_f1'],
+            quick_mode=quick_mode
         )
 
         all_experiments[exp['name']] = (best_result, all_results)
@@ -465,4 +481,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Run UCI-HAR experiments')
+    parser.add_argument('--quick', action='store_true',
+                        help='Quick mode with minimal hyperparameters')
+    args = parser.parse_args()
+
+    main(quick_mode=args.quick)
