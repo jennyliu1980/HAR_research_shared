@@ -137,6 +137,12 @@ Results:
 
 
 def save_model(data_name, my_type, time_mask, channel_mask, alpha, divide, model, epoch=None):
+    # Handle noise-robust suffix
+    is_robust = False
+    if my_type.endswith('_robust'):
+        is_robust = True
+        my_type = my_type.replace('_robust', '')  # Remove suffix for path construction
+
     model_dir = ''
     if data_name == 'uschad':
         if my_type == 'time':
@@ -163,11 +169,12 @@ def save_model(data_name, my_type, time_mask, channel_mask, alpha, divide, model
         elif my_type == 'channel':
             model_dir = 'model/{}/channel{}_divide{}'.format(data_name, channel_mask, divide)
 
-    # if epoch != None and epoch != 150:
-    #     model_dir += '_epoch{}'.format(epoch)
+    # Add robust suffix back to the path if needed
+    if is_robust:
+        model_dir += '_robust'
 
     # Create directory if it doesn't exist
-    os.makedirs(os.path.dirname(model_dir), exist_ok=True)
+    os.makedirs(os.path.dirname(model_dir) if os.path.dirname(model_dir) else 'model', exist_ok=True)
 
     torch.save(model, model_dir)
     return model_dir

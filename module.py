@@ -7,41 +7,53 @@ from encoder import Encoder
 
 
 def get_base(dir, data_name, my_type, time_mask, channel_mask, alpha, divide=None, epoch=None):
-    """Load pretrained model"""
+    """Load pretrained model - handles both regular and robust models"""
     if not os.path.exists(dir):
         raise ValueError("the path is not exist")
 
     dir_pre = os.path.join(dir, data_name)
 
+    # Handle robust suffix
+    is_robust = False
+    if my_type.endswith('_robust'):
+        is_robust = True
+        base_type = my_type.replace('_robust', '')
+    else:
+        base_type = my_type
+
     if data_name == 'uschad':
-        if my_type == 'time':
+        if base_type == 'time':
             dir_suf = 'time{}'.format(time_mask)
-        elif my_type == 'spantime':
+        elif base_type == 'spantime':
             dir_suf = 'spantime{}'.format(time_mask)
-        elif my_type == 'spantime_channel':
+        elif base_type == 'spantime_channel':
             dir_suf = 'spantime{}_channel{}_alpha{}'.format(time_mask, channel_mask, alpha)
-        elif my_type == 'time_channel':
+        elif base_type == 'time_channel':
             dir_suf = 'time{}_channel{}_alpha{}'.format(time_mask, channel_mask, alpha)
-        elif my_type == 'channel':
+        elif base_type == 'channel':
             dir_suf = 'channel{}'.format(channel_mask)
         else:
             raise ValueError("the type is not exist")
     else:
-        if my_type == 'time':
+        if base_type == 'time':
             dir_suf = 'time{}_divide{}'.format(time_mask, divide)
-        elif my_type == 'spantime':
+        elif base_type == 'spantime':
             dir_suf = 'spantime{}_divide{}'.format(time_mask, divide)
-        elif my_type == 'spantime_channel':
+        elif base_type == 'spantime_channel':
             dir_suf = 'spantime{}_channel{}_divide{}_alpha{}'.format(time_mask, channel_mask, divide, alpha)
-        elif my_type == 'time_channel':
+        elif base_type == 'time_channel':
             dir_suf = 'time{}_channel{}_divide{}_alpha{}'.format(time_mask, channel_mask, divide, alpha)
-        elif my_type == 'channel':
+        elif base_type == 'channel':
             dir_suf = 'channel{}_divide{}'.format(channel_mask, divide)
         else:
             raise ValueError("the type is not exist")
 
     if epoch is not None and epoch != 150:
         dir_suf += '_epoch{}'.format(epoch)
+
+    # Add robust suffix if needed
+    if is_robust:
+        dir_suf += '_robust'
 
     model_path = os.path.join(dir_pre, dir_suf)
     print("Loading pretrained model from: {}".format(model_path))
